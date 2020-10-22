@@ -37,7 +37,7 @@ do
     cpu_req=`echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $1}'`
     cpu_req_per=`echo ${resource}| cut -d "|" -f1 |awk -F "[()%]" '{print $2}'`
     mem_req=`echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $1}'`
-    mem_req_per=`echo ${resource}|cut -d "|" -f2 |awk -F "[()%]" '{print $5}'`
+    mem_req_per=`echo ${resource}|cut -d "|" -f2 |awk -F "[()%]" '{print $2}'`
     #echo -e "${node}\t${cpu}\t${mem}\t${cpureq}\t${cpureqper}%\t${memreq}\t${memreq}%"
     printf "$format" ${node} ${pod_count} ${cpu} ${cpu_req} ${cpu_usage_per} ${cpu_req_per} ${mem} ${mem_req} ${mem_usage_per}  ${mem_req_per}
     node_count=$((node_count + 1))
