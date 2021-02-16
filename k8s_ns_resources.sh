@@ -8,7 +8,7 @@ else
     export KUBECONFIG="`echo ~`/.kube/config"
     
 fi
-
+#kubectl get po --all-namespaces -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}|{range .spec.containers[*]}|{.name}|{.resources.requests.cpu}|{.resources.requests.cpu}|{'\n'}{end}{'\n'}{end}"
 function cpu_format
 {
     input=$1
@@ -45,9 +45,33 @@ total_cpu_req=0
 total_cpu_limit=0
 total_mem_req=0
 total_mem_limit=0
-NAMESPACE="--all-namespaces"
 
-echo "NameSpace|PodName|ContainerName|Cpu_Req|Cpu_Limit|Mem_Req|Mem_Limit"
+
+declare -A nsCpuReq
+declare -A nsCpuLimit
+declare -A nsMemReq
+declare -A nsMemLimit
+
+for x in `kubectl get ns -o name |cut -d "/" -f2`
+do
+    nsCpuReq[$x]=0
+    nsCpuLimit[$x]=0
+    nsMemReq[$x]=0
+    nsMemLimit[$x]=0
+    #nsResource[$x]['cpu_limit']=0
+done
+
+NAMESPACE="--all-namespaces"
+format="|%10s|%40s|%15s|%7s|%7s|%7s|%10s|\n"
+
+printf '%0.1s' "-"{1..104}
+printf "\n"
+printf "$format" "NameSpace" "Pod" "Container"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
+printf '%0.1s' "-"{1..104}
+printf "\n"
+
+
+
 for x in `kubectl get po ${NAMESPACE}  -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}"`
 do
     namespace=`echo $x|cut -d "|" -f1`
@@ -67,8 +91,29 @@ do
         total_mem_req=$(echo ${total_mem_req} + ${mem_request} |bc -l)
         total_mem_limit=$(echo ${total_mem_limit} + ${mem_limit} |bc -l)
 
-        echo "${namespace}|${pod_name}|${container_name}|${cpu_request}|${cpu_limit}|${mem_request}|${mem_limit}"
+        nsCpuReq[${namespace}]=$(echo ${nsCpuReq[${namespace}]} + ${cpu_request} |bc -l)
+        nsCpuLimit[${namespace}]=$(echo ${nsCpuLimit[${namespace}]} + ${cpu_limit} |bc -l)    
+        nsMemReq[${namespace}]=$(echo ${nsMemReq[${namespace}]} + ${mem_request} |bc -l)    
+        nsMemLimit[${namespace}]=$(echo ${nsMemLimit[${namespace}]} + ${mem_limit} |bc -l)    
+
+        printf "$format" ${namespace:0:10} ${pod_name:0:40} ${container_name:0:15} ${cpu_request} ${cpu_limit} ${mem_request} ${mem_limit}
+        #echo "${namespace}|${pod_name}|${container_name}|${cpu_request}|${cpu_limit}|${mem_request}|${mem_limit}"
     done
 
 done
-echo "NameSpace|PodName|ContainerName|${total_cpu_req}|${total_cpu_limit}|${total_mem_req}|${total_mem_limit}"
+printf '%0.1s' "-"{1..104}
+printf "\n"
+printf "$format" "Total" "" "" ${total_cpu_req} ${total_cpu_limit} ${total_mem_req} ${total_mem_limit}
+printf '%0.1s' "-"{1..104}
+printf "\n"
+printf "$format" "NameSpace" "" ""  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
+printf '%0.1s' "-"{1..104}
+printf "\n"
+
+for x in `kubectl get ns -o name |cut -d "/" -f2`
+do
+    printf "$format" ${x:0:10} "" ""  ${nsCpuReq[$x]} ${nsCpuLimit[$x]} ${nsMemReq[$x]} ${nsMemLimit[$x]}
+
+done
+printf '%0.1s' "-"{1..104}
+printf "\n"
