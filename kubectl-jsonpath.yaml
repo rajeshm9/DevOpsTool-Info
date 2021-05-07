@@ -1,0 +1,8 @@
+#To the the pod name
+kubectl get pod -l <labels> --field-selector=status.phase==Running -o jsonpath="{.items[0].metadata.name}")
+
+#to get the Load Balancer IP
+kubectl get svc <srv_name> -o jsonpath="{.status.loadBalancer.ingress[*].ip}"
+
+# To get worker node internal IP
+kubectl get nodes -o jsonpath='{.items[*].status.addresses[?(@.type=="InternalIP")].address}'
