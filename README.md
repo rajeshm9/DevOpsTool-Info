@@ -6,7 +6,11 @@ https://blog.twineworks.com/converting-a-mysql-dump-to-csv-files-b5e92d7cc5dd
 
 
 # Kubernetes Network Issue Debugging
+
 https://tech.xing.com/a-reason-for-unexplained-connection-timeouts-on-kubernetes-docker-abd041cf7e02
+
 https://medium.com/swlh/fix-a-random-network-connection-reset-issue-in-docker-kubernetes-5c57a11de170
+
 https://github.blog/2019-11-21-debugging-network-stalls-on-kubernetes/
+
 
