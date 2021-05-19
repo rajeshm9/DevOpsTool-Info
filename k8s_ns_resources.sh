@@ -141,16 +141,19 @@ do
 done
 printf '%0.1s' "-"{1..114}
 printf "\n"
-printf "$format" "Node" "Total CPU (Total Pods)" "Total Mem"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
+printf "$format" "Node" "Total CPU (Pods Utils%)" "Total Mem"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
 printf '%0.1s' "-"{1..114}
 printf "\n"
-for x in `kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}|{.status.allocatable.cpu}|{.status.allocatable.memory}{"\n"}{end}'`
+for x in `kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}|{.status.allocatable.cpu}|{.status.allocatable.memory}|{.status.allocatable.pods}{"\n"}{end}'`
 do
     node=`echo $x |cut -d "|" -f1`
     cpu=`echo $x |cut -d "|" -f2`
     mem=`echo $x |cut -d "|" -f3`
+    pods=`echo $x |cut -d "|" -f4`
     kubectl describe node $node > ${tmp_file}
-    pod_count=`cat ${tmp_file} |grep  "Non-terminated Pods:"  |grep -Eo '[0-9]+'`
+    p_count=`cat ${tmp_file} |grep  "Non-terminated Pods:"  |grep -Eo '[0-9]+'`
+     
+    pod_count=$(printf "%.2f" `echo - |awk "{print ($p_count/$pods)*100 }"`)
     resource=`cat ${tmp_file}|grep -E -A 3 "Requests(.*)Limits$" |grep -E "cpu|memory" |tr -s " " |sed -e "s/cpu//" -e "s/memory//" |tr "\n" "|"`
     cpu_req=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $1}')`
     cpu_limit=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $3}')`
