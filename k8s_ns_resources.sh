@@ -11,8 +11,10 @@ NAMESPACE="-n default"
 if [ -z  ${2} ]
 then 
     NAMESPACE="--all-namespaces"
+    FILTER="namespace"
 else 
     NAMESPACE="-n ${2}"
+    FILTER="${2}$"
 fi
 
 tmp_file="/tmp/log.k8s"
@@ -67,7 +69,9 @@ declare -A nsCpuLimit
 declare -A nsMemReq
 declare -A nsMemLimit
 
-for x in `kubectl get ns -o name |cut -d "/" -f2`
+
+
+for x in `kubectl get ns -o name |grep ${FILTER} | cut -d '/' -f2`
 do
     nsCpuReq[$x]=0
     nsCpuLimit[$x]=0
@@ -134,14 +138,16 @@ printf "$format" "NameSpace" "" ""  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
 printf '%0.1s' "-"{1..114}
 printf "\n"
 
-for x in `kubectl get ns -o name |cut -d "/" -f2`
+for x in `kubectl get ns -o name |grep ${FILTER} | cut -d '/' -f2`
 do
     printf "$format" ${x:0:10} "" ""  ${nsCpuReq[$x]} ${nsCpuLimit[$x]} ${nsMemReq[$x]} ${nsMemLimit[$x]}
 
 done
+
+format="|%20s|%9s|%9s|%9s|%10s|%15s|%7s|%7s|%7s|%10s|\n"
 printf '%0.1s' "-"{1..114}
 printf "\n"
-printf "$format" "Node" "Total CPU (Pods Utils%)" "Total Mem"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
+printf "$format" "Node" "CPU" "CPU_REQ%" "MEM_REQ%" "POD_CNT%" "Total Mem"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
 printf '%0.1s' "-"{1..114}
 printf "\n"
 for x in `kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}|{.status.allocatable.cpu}|{.status.allocatable.memory}|{.status.allocatable.pods}{"\n"}{end}'`
@@ -156,11 +162,13 @@ do
     pod_count=$(printf "%.2f" `echo - |awk "{print ($p_count/$pods)*100 }"`)
     resource=`cat ${tmp_file}|grep -E -A 3 "Requests(.*)Limits$" |grep -E "cpu|memory" |tr -s " " |sed -e "s/cpu//" -e "s/memory//" |tr "\n" "|"`
     cpu_req=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $1}')`
+    cpu_req_per=`echo ${resource}| cut -d "|" -f1 |awk -F "[()%]" '{print $2}'`
     cpu_limit=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $3}')`
     mem_req=`mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $1}')`
+    mem_req_per=`echo ${resource}|cut -d "|" -f2 |awk -F "[()%]" '{print $2}'`
     mem_limit=`mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $3}')`
 
-    printf "$format" ${node} "${cpu} (${pod_count}) " ${mem} ${cpu_req} ${cpu_limit} ${mem_req} ${mem_limit}
+    printf "$format" ${node} ${cpu} "${cpu_req_per}%" "${mem_req_per}%" "${pod_count}%" ${mem} ${cpu_req} ${cpu_limit} ${mem_req} ${mem_limit}
 done
 printf '%0.1s' "-"{1..114}
 printf "\n"
