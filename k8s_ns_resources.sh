@@ -7,6 +7,8 @@ else
     export KUBECONFIG="${1}"
     
 fi
+
+THRESDHOLD=80
 NAMESPACE="-n default"
 if [ -z  ${2} ]
 then 
@@ -47,7 +49,12 @@ function mem_format
     elif [[ `echo  $input |grep -c "Gi"` -eq 1 ]]    
     then
         #printf "%.3f" $(echo $(echo ${input} |sed -e "s/Gi//g")  |bc -l )  
-        v=`echo - |awk "{print $(echo ${input} |sed -e 's/Gi//g')/1000}"` 
+        v=`echo - |awk "{print $(echo ${input} |sed -e 's/Gi//g')}"` 
+        printf "%.3f" ${v}
+    elif [[ `echo  $input |grep -c "Ki"` -eq 1 ]]    
+    then
+        #printf "%.3f" $(echo $(echo ${input} |sed -e "s/Gi//g")  |bc -l )  
+        v=`echo - |awk "{print $(echo ${input} |sed -e 's/Ki//g')/1000000}"` 
         printf "%.3f" ${v}
     elif [[ -z $input ]]
     then
@@ -144,7 +151,7 @@ do
 
 done
 
-format="|%20s|%9s|%9s|%9s|%10s|%15s|%7s|%7s|%7s|%10s|\n"
+format="|%20s|%9s|%09b|%9b|%10b|%15s|%7s|%7s|%7s|%10s|\n"
 printf '%0.1s' "-"{1..114}
 printf "\n"
 printf "$format" "Node" "CPU" "CPU_REQ%" "MEM_REQ%" "POD_CNT%" "Total Mem"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
@@ -160,14 +167,24 @@ do
     p_count=`cat ${tmp_file} |grep  "Non-terminated Pods:"  |grep -Eo '[0-9]+'`
      
     pod_count=$(printf "%.2f" `echo - |awk "{print ($p_count/$pods)*100 }"`)
+    
+
     resource=`cat ${tmp_file}|grep -E -A 3 "Requests(.*)Limits$" |grep -E "cpu|memory" |tr -s " " |sed -e "s/cpu//" -e "s/memory//" |tr "\n" "|"`
     cpu_req=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $1}')`
     cpu_req_per=`echo ${resource}| cut -d "|" -f1 |awk -F "[()%]" '{print $2}'`
+    if [[ $cpu_req_per -gt ${THRESDHOLD} ]]
+    then
+        cpu_req_per="      \e[1;31m${cpu_req_per}\e[0m"
+    fi
     cpu_limit=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $3}')`
     mem_req=`mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $1}')`
     mem_req_per=`echo ${resource}|cut -d "|" -f2 |awk -F "[()%]" '{print $2}'`
+    if [[ $mem_req_per -gt ${THRESDHOLD} ]]
+    then
+        mem_req_per="      \e[1;31m${mem_req_per}\e[0m"
+    fi
     mem_limit=`mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $3}')`
-
+    
     printf "$format" ${node} ${cpu} "${cpu_req_per}%" "${mem_req_per}%" "${pod_count}%" ${mem} ${cpu_req} ${cpu_limit} ${mem_req} ${mem_limit}
 done
 printf '%0.1s' "-"{1..114}
