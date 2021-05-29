@@ -2,6 +2,7 @@
 
 function getData()
 {
+    $date=date('d-m-Y');
     $header[]='authority: cdn-api.co-vin.in';
     $header[]='sec-ch-ua: " Not A;Brand";v="99", "Chromium";v="90", "Google Chrome";v="90"';
     $header[]='user-agent: Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36';
@@ -13,7 +14,7 @@ function getData()
     $header[]='accept-language: en-GB,en;q=0.9,hi-IN;q=0.8,hi;q=0.7,en-US;q=0.6';
 
 
-    $url = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=650&date=23-05-2021";
+    $url = "https://cdn-api.co-vin.in/api/v2/appointment/sessions/public/calendarByDistrict?district_id=650&date=".$date;
     $ch = curl_init();
     curl_setopt($ch, CURLOPT_URL, $url);
 
