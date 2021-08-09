@@ -99,7 +99,7 @@ printf "\n"
 
 
 
-for x in `kubectl get po ${NAMESPACE}  -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}"`
+for x in `kubectl get po ${NAMESPACE} --field-selector=status.phase==Running  -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}"`
 do
     namespace=`echo $x|cut -d "|" -f1`
     pod_name=`echo $x|cut -d "|" -f2`
