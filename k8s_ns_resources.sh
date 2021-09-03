@@ -7,7 +7,7 @@ else
     export KUBECONFIG="${1}"
     
 fi
-
+kubectl config current-context
 THRESDHOLD=80
 NAMESPACE="-n default"
 if [ -z  ${2} ]
@@ -46,6 +46,11 @@ function mem_format
         #printf "%.3f" $(echo $(echo ${input} |sed -e "s/Mi//g" -e "s/M//g")/1000  |bc -l )
         v=`echo - |awk "{print $(echo ${input} |sed -e 's/Mi//g' -e 's/M//g')/1000}"` 
         printf "%.3f" ${v}  
+    elif [[ `echo  $input |grep -c "m"` -eq 1 ]]    
+    then
+        #printf "%.3f" $(echo $(echo ${input} |sed -e "s/Gi//g")  |bc -l )  
+         v=`echo - |awk "{print $(echo ${input} |sed -e 's/Mi//g' -e 's/m//g')/1073741824000}"` 
+        printf "%.3f" ${v}    
     elif [[ `echo  $input |grep -c "Gi"` -eq 1 ]]    
     then
         #printf "%.3f" $(echo $(echo ${input} |sed -e "s/Gi//g")  |bc -l )  
@@ -60,7 +65,9 @@ function mem_format
     then
         echo "0"
     else
-        printf "%d" $input
+        #printf "%d" $input
+        v=`echo - |awk "{print $(echo ${input} |sed -e 's/Ki//g')/1073741824}"` 
+        printf "%.3f" ${v}
     fi
 
 }
@@ -99,7 +106,7 @@ printf "\n"
 
 
 
-for x in `kubectl get po ${NAMESPACE} --field-selector=status.phase==Running  -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}"`
+for x in `kubectl get po ${NAMESPACE}  --field-selector=status.phase==Running -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}"`
 do
     namespace=`echo $x|cut -d "|" -f1`
     pod_name=`echo $x|cut -d "|" -f2`
@@ -161,7 +168,7 @@ for x in `kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}|{.sta
 do
     node=`echo $x |cut -d "|" -f1`
     cpu=`echo $x |cut -d "|" -f2`
-    mem=`echo $x |cut -d "|" -f3`
+    mem=`mem_format $(echo $x |cut -d "|" -f3)`
     pods=`echo $x |cut -d "|" -f4`
     kubectl describe node $node > ${tmp_file}
     p_count=`cat ${tmp_file} |grep  "Non-terminated Pods:"  |grep -Eo '[0-9]+'`
