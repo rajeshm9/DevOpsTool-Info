@@ -1,0 +1,103 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  
+  name: psp-demo-sa
+  namespace: psp-demo
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: psp-sa
+  namespace: psp-demo
+rules:
+  - apiGroups:
+    - ""
+    resources:
+    - pods
+    verbs:
+    - '*'
+  - apiGroups:
+    - apps
+    resources:
+    - deployments
+    verbs:
+    - '*'
+
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: psp-sa
+  namespace: psp-demo
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind:     Role
+  name:     psp-sa
+subjects:
+  - kind: ServiceAccount
+    name: psp-demo-sa
+--- 
+apiVersion: policy/v1beta1
+kind: PodSecurityPolicy
+metadata:
+  name: psp-restricted
+spec:
+  privileged:               false
+  allowPrivilegeEscalation: false
+  requiredDropCapabilities: [ALL]
+  readOnlyRootFilesystem:   false
+  hostNetwork: false
+  hostIPC:     false
+  hostPID:     false
+  runAsUser:
+    # Require the container to run without root privileges.
+    rule: MustRunAsNonRoot
+  seLinux:
+    # Assume nodes are using AppArmor rather than SELinux.
+    rule: RunAsAny
+  supplementalGroups:
+    rule: MustRunAs
+    ranges: [{ min: 1, max: 65535 }]
+  fsGroup:
+    rule: MustRunAs
+    ranges: [{ min: 1, max: 65535 }]
+  # Allow core volume types.
+  volumes:
+    - configMap
+    - emptyDir
+    - projected
+    - secret
+    - downwardAPI
+    - persistentVolumeClaim
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default-psp
+rules:
+  - apiGroups:     [policy]
+    resources:     [podsecuritypolicies]
+    resourceNames: []
+    verbs:         [list, get]
+  - apiGroups:     [policy]
+    resources:     [podsecuritypolicies]
+    resourceNames: [psp-restricted]
+    verbs:         [use]  
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: default-psp
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind:     ClusterRole
+  name:     default-psp
+subjects:
+  - apiGroup: rbac.authorization.k8s.io
+    kind:     Group
+    name:     system:authenticated # All authenticated users
+  - apiGroup: rbac.authorization.k8s.io
+    kind:     Group
+    name:     system:serviceaccounts
