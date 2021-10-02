@@ -14,3 +14,8 @@ https://medium.com/swlh/fix-a-random-network-connection-reset-issue-in-docker-ku
 https://github.blog/2019-11-21-debugging-network-stalls-on-kubernetes/
 
 
+# Container Performance
+
+https://www.brendangregg.com/Slides/LISA2017_Container_Performance_Analysis.pdf
+
+

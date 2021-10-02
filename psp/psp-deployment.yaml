@@ -30,5 +30,4 @@ spec:
           privileged: false
 
 # minikube start --extra-config=apiserver.enable-admission-plugins=PodSecurityPolicy --addons=pod-security-policy
-
-#           
+# 00000000a80425fb          
