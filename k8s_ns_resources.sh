@@ -36,6 +36,40 @@ function cpu_format
         printf "%d" $input
     fi
 }
+function store_format
+{
+    input=$1   
+    if [[ `echo  $input |egrep -c "M"` -eq 1 ]]
+    then
+
+        #printf "%.3f" $(echo $(echo ${input} |sed -e "s/Mi//g" -e "s/M//g")/1000  |bc -l )
+        v=`echo - |awk "{print $(echo ${input} |sed -e 's/Mi//g' -e 's/M//g')/1000}"` 
+        printf "%.3f" ${v} 
+    elif [[ `echo  $input |egrep -c "G"` -eq 1 ]]
+    then
+        v=`echo - |awk "{print $(echo ${input} |sed -e 's/Gi//g' -e 's/G//g')}"` 
+        printf "%.3f" ${v} 
+    else
+        printf "%.3f" ${input} 
+    fi
+}
+
+function ns_pvc_cal
+{
+    total_space=0
+    ns=$1
+    for x in $(kubectl get pvc -n ${ns} -o jsonpath='{.items[*].status.capacity.storage}')
+    do
+        #echo "$(store_format $x) $x"
+        size=$(store_format $x)
+        total_space=$(echo - |awk "{print ${total_space} + ${size}}")
+    done
+    
+    printf "%.3f" ${total_space}
+
+}
+
+
 function mem_format
 {
     input=$1
@@ -91,6 +125,7 @@ do
     nsCpuLimit[$x]=0
     nsMemReq[$x]=0
     nsMemLimit[$x]=0
+    nsPvc[$x]=0
     #nsResource[$x]['cpu_limit']=0
 done
 
@@ -106,38 +141,38 @@ printf "\n"
 
 
 
-for x in `kubectl get po ${NAMESPACE}  --field-selector=status.phase==Running -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}"`
+for x in $(kubectl get po ${NAMESPACE}  --field-selector=status.phase==Running -o=jsonpath="{range .items[*]}{.metadata.namespace}|{.metadata.name}{'\n'}{end}")
 do
-    namespace=`echo $x|cut -d "|" -f1`
-    pod_name=`echo $x|cut -d "|" -f2`
+    namespace=$(echo $x|cut -d "|" -f1)
+    pod_name=$(echo $x|cut -d "|" -f2)
 
-    for y in `kubectl get pod ${pod_name} -n ${namespace}  -o jsonpath="{range .spec.containers[*]}{.name}|{.resources.requests.cpu}|{.resources.limits.cpu}|{.resources.requests.memory}|{.resources.limits.memory}{'\n'}{end}"`
+    for y in $(kubectl get pod ${pod_name} -n ${namespace}  -o jsonpath="{range .spec.containers[*]}{.name}|{.resources.requests.cpu}|{.resources.limits.cpu}|{.resources.requests.memory}|{.resources.limits.memory}{'\n'}{end}")
     do
-        container_name=`echo $y|cut -d "|" -f1`
-        cpu_request=`cpu_format $(echo $y|cut -d "|" -f2)`
-        cpu_limit=`cpu_format $(echo $y|cut -d "|" -f3)`
-        mem_request=`mem_format $(echo $y|cut -d "|" -f4)`
-        mem_limit=`mem_format $(echo $y|cut -d "|" -f5)`
+        container_name=$(echo $y|cut -d "|" -f1)
+        cpu_request=$(cpu_format $(echo $y|cut -d "|" -f2))
+        cpu_limit=$(cpu_format $(echo $y|cut -d "|" -f3))
+        mem_request=$(mem_format $(echo $y|cut -d "|" -f4))
+        mem_limit=$(mem_format $(echo $y|cut -d "|" -f5))
 
         #total_cpu_req=$(echo ${total_cpu_req} + ${cpu_request} |bc -l)
-        total_cpu_req=`echo - |awk "{print ${total_cpu_req} + ${cpu_request}}"` 
+        total_cpu_req=$(echo - |awk "{print ${total_cpu_req} + ${cpu_request}}") 
 
         #total_cpu_limit=$(echo ${total_cpu_limit} + ${cpu_limit}|bc -l)
-        total_cpu_limit=`echo - |awk "{print ${total_cpu_limit} + ${cpu_limit}}"`
+        total_cpu_limit=$(echo - |awk "{print ${total_cpu_limit} + ${cpu_limit}}")
 
         #total_mem_req=$(echo ${total_mem_req} + ${mem_request} |bc -l)
-        total_mem_req=`echo - |awk "{print ${total_mem_req} + ${mem_request}}"`
+        total_mem_req=$(echo - |awk "{print ${total_mem_req} + ${mem_request}}")
         #total_mem_limit=$(echo ${total_mem_limit} + ${mem_limit} |bc -l)
-        total_mem_limit=`echo - |awk "{print ${total_mem_limit} + ${mem_limit}}"`
+        total_mem_limit=$(echo - |awk "{print ${total_mem_limit} + ${mem_limit}}")
 
         #nsCpuReq[${namespace}]=$(echo ${nsCpuReq[${namespace}]} + ${cpu_request} |bc -l)
-        nsCpuReq[${namespace}]=`echo - |awk "{print  ${nsCpuReq[${namespace}]} + ${cpu_request}}"`
+        nsCpuReq[${namespace}]=$(echo - |awk "{print  ${nsCpuReq[${namespace}]} + ${cpu_request}}")
         #nsCpuLimit[${namespace}]=$(echo ${nsCpuLimit[${namespace}]} + ${cpu_limit} |bc -l)    
-        nsCpuLimit[${namespace}]=`echo - |awk "{print  ${nsCpuLimit[${namespace}]} + ${cpu_limit}}"`
+        nsCpuLimit[${namespace}]=$(echo - |awk "{print  ${nsCpuLimit[${namespace}]} + ${cpu_limit}}")
         #nsMemReq[${namespace}]=$(echo ${nsMemReq[${namespace}]} + ${mem_request} |bc -l)    
-        nsMemReq[${namespace}]=`echo - |awk "{print  ${nsMemReq[${namespace}]} + ${mem_request}}"`
+        nsMemReq[${namespace}]=$(echo - |awk "{print  ${nsMemReq[${namespace}]} + ${mem_request}}")
         #nsMemLimit[${namespace}]=$(echo ${nsMemLimit[${namespace}]} + ${mem_limit} |bc -l)    
-        nsMemLimit[${namespace}]=`echo - |awk "{print  ${nsMemLimit[${namespace}]} + ${mem_limit}}"`
+        nsMemLimit[${namespace}]=$(echo - |awk "{print  ${nsMemLimit[${namespace}]} + ${mem_limit}}")
         printf "$format" ${namespace:0:10} ${pod_name:0:40} ${container_name:0:15} ${cpu_request} ${cpu_limit} ${mem_request} ${mem_limit}
         #echo "${namespace}|${pod_name}|${container_name}|${cpu_request}|${cpu_limit}|${mem_request}|${mem_limit}"
     done
@@ -148,13 +183,15 @@ printf "\n"
 printf "$format" "Total" "" "" ${total_cpu_req} ${total_cpu_limit} ${total_mem_req} ${total_mem_limit}
 printf '%0.1s' "-"{1..114}
 printf "\n"
-printf "$format" "NameSpace" "" ""  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
+printf "$format" "NameSpace" "" "PVC(GB)"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
 printf '%0.1s' "-"{1..114}
 printf "\n"
 
-for x in `kubectl get ns -o name |grep ${FILTER} | cut -d '/' -f2`
+for x in $(kubectl get ns -o name |grep ${FILTER} | cut -d '/' -f2)
 do
-    printf "$format" ${x:0:10} "" ""  ${nsCpuReq[$x]} ${nsCpuLimit[$x]} ${nsMemReq[$x]} ${nsMemLimit[$x]}
+    pvc=$(ns_pvc_cal $x)
+
+    printf "$format" ${x:0:10} "" ${pvc}  ${nsCpuReq[$x]} ${nsCpuLimit[$x]} ${nsMemReq[$x]} ${nsMemLimit[$x]}
 
 done
 
@@ -164,33 +201,33 @@ printf "\n"
 printf "$format" "Node" "CPU" "CPU_REQ%" "MEM_REQ%" "POD_CNT%" "Total Mem"  "CPU_REQ" "CPU_LMT" "MEM_REQ" "MEM_LMT"
 printf '%0.1s' "-"{1..114}
 printf "\n"
-for x in `kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}|{.status.allocatable.cpu}|{.status.allocatable.memory}|{.status.allocatable.pods}{"\n"}{end}'`
+for x in $(kubectl get nodes -o=jsonpath='{range .items[*]}{.metadata.name}|{.status.allocatable.cpu}|{.status.allocatable.memory}|{.status.allocatable.pods}{"\n"}{end}')
 do
-    node=`echo $x |cut -d "|" -f1`
-    cpu=`echo $x |cut -d "|" -f2`
-    mem=`mem_format $(echo $x |cut -d "|" -f3)`
-    pods=`echo $x |cut -d "|" -f4`
+    node=$(echo $x |cut -d "|" -f1)
+    cpu=$(echo $x |cut -d "|" -f2)
+    mem=$(mem_format $(echo $x |cut -d "|" -f3))
+    pods=$(echo $x |cut -d "|" -f4)
     kubectl describe node $node > ${tmp_file}
-    p_count=`cat ${tmp_file} |grep  "Non-terminated Pods:"  |grep -Eo '[0-9]+'`
+    p_count=$(cat ${tmp_file} |grep  "Non-terminated Pods:"  |grep -Eo '[0-9]+')
      
-    pod_count=$(printf "%.2f" `echo - |awk "{print ($p_count/$pods)*100 }"`)
+    pod_count=$(printf "%.2f" $(echo - |awk "{print ($p_count/$pods)*100 }"))
     
 
-    resource=`cat ${tmp_file}|grep -E -A 3 "Requests(.*)Limits$" |grep -E "cpu|memory" |tr -s " " |sed -e "s/cpu//" -e "s/memory//" |tr "\n" "|"`
-    cpu_req=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $1}')`
-    cpu_req_per=`echo ${resource}| cut -d "|" -f1 |awk -F "[()%]" '{print $2}'`
+    resource=$(cat ${tmp_file}|grep -E -A 3 "Requests(.*)Limits$" |grep -E "cpu|memory" |tr -s " " |sed -e "s/cpu//" -e "s/memory//" |tr "\n" "|")
+    cpu_req=$(cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $1}'))
+    cpu_req_per=$(echo ${resource}| cut -d "|" -f1 |awk -F "[()%]" '{print $2}')
     if [[ $cpu_req_per -gt ${THRESDHOLD} ]]
     then
         cpu_req_per="      \e[1;31m${cpu_req_per}\e[0m"
     fi
-    cpu_limit=`cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $3}')`
-    mem_req=`mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $1}')`
-    mem_req_per=`echo ${resource}|cut -d "|" -f2 |awk -F "[()%]" '{print $2}'`
+    cpu_limit=$(cpu_format $(echo ${resource}|cut -d "|" -f1 |awk -F " " '{print $3}'))
+    mem_req=$(mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $1}'))
+    mem_req_per=$(echo ${resource}|cut -d "|" -f2 |awk -F "[()%]" '{print $2}')
     if [[ $mem_req_per -gt ${THRESDHOLD} ]]
     then
         mem_req_per="      \e[1;31m${mem_req_per}\e[0m"
     fi
-    mem_limit=`mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $3}')`
+    mem_limit=$(mem_format $(echo ${resource}|cut -d "|" -f2 |awk -F " " '{print $3}'))
     
     printf "$format" ${node} ${cpu} "${cpu_req_per}%" "${mem_req_per}%" "${pod_count}%" ${mem} ${cpu_req} ${cpu_limit} ${mem_req} ${mem_limit}
 done
