@@ -1,0 +1,16 @@
+Source: https://dba.stackexchange.com/questions/20372/capabilities-of-innodb-insert-performance
+
+Make InnoDB access all your cores
+Increase innodb_buffer_pool_size to 12G
+Increase innodb_buffer_pool_instances to 2 (First run numactl --hardware to determine the number of Physical CPUs. What every number of CPUs it reports, use that number. I learned this recently in Jeremy Cole's Blog)
+Increase Log File Size (innodb_log_file_size) to 2047M
+support separate tablespace files for individual InnoDB tables (enaled innodb_file_per_table)
+support either high performance or high durability (ACID Compliance)
+High Performance : innodb_flush_log_at_trx_commit set to 0 or 2
+High Durability : innodb_flush_log_at_trx_commit set to 1 (Default)
+Increase Size up the innodb_log_buffer_size in conjunction with the number of transactions per second (perhaps 32M)
+Your current setting for innodb_flush_log_at_trx_commit is good
+Your current setting for innodb_flush_method is good
+Increase innodb_read_io_threads to 64
+Increase innodb_write_io_threads to 64
+Increase innodb_io_capactity to 10000
