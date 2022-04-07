@@ -20,3 +20,22 @@ for apipath in $(kubectl api-versions | sort | sed '/\//{H;1h;$!d;x}'); do
 done
 `"
 
+# Get all Pod logs in one namespace
+NS=${NS:-${1}}
+
+for pod in $(kubectl get pods -n ${NS} -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
+do
+    #depending on logs, this may take a while
+    echo "== Fetching Logs ${pod} ==="
+    kubectl logs $pod -n ${NS} > $pod.txt 2>&1
+    if [ $? -ne 0 ]
+    then
+           for x in $(cat "${pod}.txt" |grep -o "\[.*\]" |cut -d "]" -f1 |tr -d "[")
+           do
+                   kubectl logs $pod -c ${x} -n ${NS} > ${x}-${pod}.txt 2>&1
+           done
+        rm ${pod}.txt
+    fi
+done
+
+
