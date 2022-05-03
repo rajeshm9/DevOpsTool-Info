@@ -1,0 +1,98 @@
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-allow-8080
+spec:
+  podSelector:
+    matchLabels:
+      app: apiserver
+  ingress:
+  - ports:
+    - port: 8080
+    from:
+    - podSelector:
+        matchLabels:
+          role: webserver
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: default-deny-all
+  namespace: default
+spec:
+  podSelector: {}
+  ingress: []
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: api-allow
+spec:
+  podSelector:
+    matchLabels:
+      app: bookstore
+      role: api
+  ingress:
+  - from:
+      - podSelector:
+          matchLabels:
+            app: bookstore
+---
+kind: NetworkPolicy
+apiVersion: networking.k8s.io/v1
+metadata:
+  name: redis-allow-services
+spec:
+  podSelector:
+    matchLabels:
+      app: bookstore
+      role: db
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: bookstore
+          role: search
+    - podSelector:
+        matchLabels:
+          app: bookstore
+          role: api
+    - podSelector:
+        matchLabels:
+          app: inventory
+          role: web
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: test-network-policy
+  namespace: default
+spec:
+  podSelector:
+    matchLabels:
+      role: db
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - ipBlock:
+            cidr: 172.17.0.0/16
+            except:
+              - 172.17.1.0/24
+        - namespaceSelector:
+            matchLabels:
+              project: myproject
+        - podSelector:
+            matchLabels:
+              role: frontend
+      ports:
+        - protocol: TCP
+          port: 6379
+  egress:
+    - to:
+        - ipBlock:
+            cidr: 10.0.0.0/24
+      ports:
+        - protocol: TCP
+          port: 5978
