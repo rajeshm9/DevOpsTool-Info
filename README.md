@@ -19,3 +19,6 @@ https://github.blog/2019-11-21-debugging-network-stalls-on-kubernetes/
 https://www.brendangregg.com/Slides/LISA2017_Container_Performance_Analysis.pdf
 
 
+# OpenTracing
+
+https://github.com/jaegertracing/jaeger/tree/main/examples/hotrod
