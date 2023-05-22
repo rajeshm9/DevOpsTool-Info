@@ -13,6 +13,8 @@ https://medium.com/swlh/fix-a-random-network-connection-reset-issue-in-docker-ku
 
 https://github.blog/2019-11-21-debugging-network-stalls-on-kubernetes/
 
+https://focaaby.com/eks-service-with-internal-nlb-but-gets-timeouts-randomly/#references
+
 
 # Container Performance
 
