@@ -1,3 +1,6 @@
+############ check remote port status ############
+< /dev/tcp/<ip_addr>/<port_no> && echo Port is open || echo Port is closed
+
 ############ Extact substring using grep ############
 ehco key="121"
 grep -oP 'key="\K[^"]+'
