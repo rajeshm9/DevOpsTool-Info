@@ -49,3 +49,39 @@ kubectl get namespace $NAMESPACE -o json |jq '.spec = {"finalizers":[]}' >temp.j
 curl -k -H "Content-Type: application/json" -X PUT --data-binary @temp.json 127.0.0.1:8001/api/v1/namespaces/$NAMESPACE/finalize
 )
 
+############ Update cert-manager certificate #########
+k_update() {
+    kubectl -n $1 get certs --no-headers=true | awk '{print $1}' | xargs -n 1 kubectl -n $1 patch certificate --patch '
+- op: replace
+  path: /spec/renewBefore
+  value: 1440h
+' --type=json
+}
+
+k_remove() {
+kubectl -n $1 get certs --no-headers=true | awk '{print $1}' | xargs -n 1 kubectl -n $1 patch certificate --patch '
+- op: remove
+  path: /spec/renewBefore
+' --type=json
+}
+
+
+# operation is $1
+operation=$1
+# if operation is not set, default to update
+if [ -z "$operation" ]; then
+    operation="update"
+fi
+
+
+for ns in $(kubectl get ns --no-headers  | awk '{print $1}');
+do
+    if [ "$operation" == "update" ]; then
+        k_update $ns
+    elif [ "$operation" == "remove" ]; then
+        k_remove $ns
+    else
+        echo "Invalid operation: $operation"
+        exit 1
+    fi
+done
