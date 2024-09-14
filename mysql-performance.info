@@ -14,3 +14,31 @@ Your current setting for innodb_flush_method is good
 Increase innodb_read_io_threads to 64
 Increase innodb_write_io_threads to 64
 Increase innodb_io_capactity to 10000
+
+** Partition Size Information **
+For partitioned tables, you can query the INFORMATION_SCHEMA.PARTITIONS table to get the size of each partition.
+SELECT 
+    table_name AS 'Table',
+    partition_name AS 'Partition',
+    ROUND(data_length / 1024 / 1024, 2) AS 'Partition Data Size (MB)',
+    ROUND(index_length / 1024 / 1024, 2) AS 'Partition Index Size (MB)',
+    ROUND((data_length + index_length) / 1024 / 1024, 2) AS 'Total Partition Size (MB)'
+FROM 
+    information_schema.partitions
+WHERE 
+    table_schema = 'your_database_name' AND 
+    table_name = 'your_table_name';
+
+** All Table and Index Sizes in a Database ** 
+If you want to see the size of all tables in a database, you can run the following query
+SELECT 
+    table_name AS 'Table',
+    ROUND((data_length + index_length) / 1024 / 1024, 2) AS 'Total Size (MB)',
+    ROUND(data_length / 1024 / 1024, 2) AS 'Data Size (MB)',
+    ROUND(index_length / 1024 / 1024, 2) AS 'Index Size (MB)'
+FROM 
+    information_schema.tables
+WHERE 
+    table_schema = 'your_database_name'
+ORDER BY 
+    (data_length + index_length) DESC;
