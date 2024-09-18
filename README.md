@@ -24,3 +24,12 @@ https://www.brendangregg.com/Slides/LISA2017_Container_Performance_Analysis.pdf
 # OpenTracing
 
 https://github.com/jaegertracing/jaeger/tree/main/examples/hotrod
+
+# Git Commands
+Delete the most recent commit, without destroying the work you've done:
+
+git reset --soft HEAD~1
+
+Delete the most recent commit and remove changes:
+
+git reset --hard HEAD~1
