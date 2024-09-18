@@ -33,3 +33,10 @@ git reset --soft HEAD~1
 Delete the most recent commit and remove changes:
 
 git reset --hard HEAD~1
+
+# Security
+
+https://github.com/ksoclabs/awesome-kubernetes-security
+
+cnspec scan k8s --namespaces <ns> -f cnspec-policies/core/mondoo-kubernetes-best-practices.mql.yaml
+
