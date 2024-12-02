@@ -34,6 +34,9 @@ Delete the most recent commit and remove changes:
 
 git reset --hard HEAD~1
 
+Git change by particular user:
+git show `git log --author=xx | grep ^commit | awk -F ' ' '{print $2}'`
+
 # Security
 
 https://github.com/ksoclabs/awesome-kubernetes-security
