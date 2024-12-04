@@ -43,3 +43,7 @@ https://github.com/ksoclabs/awesome-kubernetes-security
 
 cnspec scan k8s --namespaces <ns> -f cnspec-policies/core/mondoo-kubernetes-best-practices.mql.yaml
 
+# GenAI
+https://github.com/GoogleCloudPlatform/generative-ai/tree/main/gemini/sample-apps
+
+
