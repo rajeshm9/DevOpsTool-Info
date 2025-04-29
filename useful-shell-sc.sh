@@ -85,3 +85,5 @@ do
         exit 1
     fi
 done
+######## Error Pod List ############
+kubectl get pod -A |grep  -vi completed |egrep -v "1/1|2/2|3/3|4/4|5/5"
