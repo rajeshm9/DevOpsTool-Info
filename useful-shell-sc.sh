@@ -24,21 +24,16 @@ done
 `"
 
 ############ Get all Pod logs in one namespace #########
+#!/bin/bash
 NS=${NS:-${1}}
 
+log_dir=log_$(date +%Y%m%d_%H)
+mkdir -p $log_dir
 for pod in $(kubectl get pods -n ${NS} -o go-template --template '{{range .items}}{{.metadata.name}}{{"\n"}}{{end}}')
 do
     #depending on logs, this may take a while
     echo "== Fetching Logs ${pod} ==="
-    kubectl logs $pod -n ${NS} > $pod.txt 2>&1
-    if [ $? -ne 0 ]
-    then
-           for x in $(cat "${pod}.txt" |grep -o "\[.*\]" |cut -d "]" -f1 |tr -d "[")
-           do
-                   kubectl logs $pod -c ${x} -n ${NS} > ${x}-${pod}.txt 2>&1
-           done
-        rm ${pod}.txt
-    fi
+    kubectl logs $pod -n ${NS} --all-containers> ${log_dir}/$pod.txt 2>&1
 done
 
 ############ Delete Namespace in Terminating Status #########
